@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: previews
+  namespace: argocd
+spec:
+  description: Parent project for preview environment ApplicationSet
+  sourceRepos:
+    - "https://github.com/YOUR-ORG/YOUR-GITOPS-REPO.git"
+    - "oci://ghcr.io/badilhq/charts/*"
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: argoproj.io
+      kind: AppProject

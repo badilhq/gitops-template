@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: preview-environments
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/YOUR-ORG/YOUR-GITOPS-REPO.git
+        revision: HEAD
+        directories:
+          - path: "previews/*"
+  template:
+    metadata:
+      name: "{{ .path.basename }}"
+      labels:
+        app.kubernetes.io/part-of: preview-environments
+    spec:
+      project: previews
+      sources:
+        - repoURL: https://github.com/YOUR-ORG/YOUR-GITOPS-REPO.git
+          targetRevision: HEAD
+          ref: values
+        - repoURL: oci://ghcr.io/badilhq/charts/preview-apps
+          targetRevision: 0.13.0
+          path: "."
+          helm:
+            releaseName: "{{ .path.basename }}"
+            valueFiles:
+              - "$values/{{ .path.path }}/values.yaml"
+            parameters:
+              # Must match the namespace Argo CD runs in: the AppProject and
+              # the service Applications of each preview are created there.
+              - name: argocdNamespace
+                value: argocd
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
